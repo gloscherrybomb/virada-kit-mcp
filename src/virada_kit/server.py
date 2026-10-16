@@ -7,7 +7,7 @@ validate_kit, export_kit (hands the file back to the agent), import_kit. Resourc
 import base64, io, json, os, sys, tempfile
 import numpy as np
 from PIL import Image as PILImage
-from mcp.server.mcpserver import MCPServer, Image, Context
+from mcp.server.mcpserver import MCPServer, Image, Context, Icon
 from mcp.types import EmbeddedResource, BlobResourceContents
 from . import sheets, preview, kitfile, limits
 
@@ -42,7 +42,11 @@ def _hv(fn):
         finally: LIMITER.heavy.release()
     return run
 
-mcp = MCPServer('virada-kit', title='Virada kit maker', version='0.1.0',
+_PUB = os.environ.get('VIRADA_KIT_PUBLIC_URL', '').rstrip('/')
+ICONS = [Icon(src=f'{_PUB}/icon-512.png', mimeType='image/png', sizes=['512x512']),
+         Icon(src=f'{_PUB}/icon-192.png', mimeType='image/png', sizes=['192x192'])] if _PUB.startswith('https://') else None
+mcp = MCPServer('virada-kit', title='Virada kit maker', version='0.1.0', icons=ICONS,
+                website_url='https://github.com/gloscherrybomb/virada-kit-mcp',
                 instructions='Makes cycling kits (jersey + bib shorts) for the Virada game from the user\'s reference '
                              'pictures. Start with get_kit_spec; preview and compare until the kit on the game\'s rider '
                              'matches the references; then export_kit.')
@@ -250,6 +254,33 @@ async def download(request):
     if '/' in tok + name or '..' in tok + name or not name.endswith('.kit.zip') or not os.path.exists(p):
         return PlainTextResponse('not found', status_code=404)
     return FileResponse(p, media_type='application/zip', filename=name)
+
+ICON_DIR = os.path.join(sheets.DATA, 'icon')
+ICON_FILES = {'favicon.ico': 'image/x-icon', 'icon-192.png': 'image/png', 'icon-512.png': 'image/png', 'apple-touch-icon.png': 'image/png'}
+
+@mcp.custom_route('/{icon_name}', methods=['GET'], include_in_schema=False)
+async def icon_file(request):
+    """The Virada icon (apps that show a server's favicon find it here, not the parent domain's)."""
+    from starlette.responses import FileResponse, PlainTextResponse
+    n = request.path_params['icon_name']
+    if n == 'health': return PlainTextResponse('ok')              # (this route is matched before /health)
+    if n not in ICON_FILES: return PlainTextResponse('not found', status_code=404)
+    return FileResponse(os.path.join(ICON_DIR, n), media_type=ICON_FILES[n], headers={'Cache-Control': 'public, max-age=86400'})
+
+@mcp.custom_route('/', methods=['GET'], include_in_schema=False)
+async def home(request):
+    from starlette.responses import HTMLResponse
+    return HTMLResponse('''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Virada kit maker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>body{font-family:system-ui,sans-serif;background:#1c1c20;color:#eee;max-width:640px;margin:48px auto;padding:0 16px;line-height:1.5}
+img{width:96px;height:96px}code{background:#2a2a30;padding:2px 6px;border-radius:4px}a{color:#ff5a4e}</style></head>
+<body><img src="/icon-192.png" alt=""><h1>Virada kit maker</h1>
+<p>An MCP server: connect your AI agent, give it pictures of a cycling kit, and it makes a kit file for the Virada game.</p>
+<p>Server address for chat apps: <code>''' + PUBLIC_URL + '''/mcp</code></p>
+<p>How to connect and the kit format: <a href="https://github.com/gloscherrybomb/virada-kit-mcp">github.com/gloscherrybomb/virada-kit-mcp</a></p>
+</body></html>''')
 
 @mcp.custom_route('/health', methods=['GET'], include_in_schema=False)
 async def health(request):
