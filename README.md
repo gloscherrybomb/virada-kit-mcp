@@ -9,14 +9,14 @@ you to send in. Submitted kits are reviewed before they appear in the game.
 
 The server runs on your computer (Python 3.12+, [uv](https://docs.astral.sh/uv/)):
 
-    uvx --from git+https://github.com/OWNER/virada-kit-mcp virada-kit
+    uvx --from git+https://github.com/gloscherrybomb/virada-kit-mcp virada-kit
 
-**Claude Code:** `claude mcp add virada-kit -- uvx --from git+https://github.com/OWNER/virada-kit-mcp virada-kit`
+**Claude Code:** `claude mcp add virada-kit -- uvx --from git+https://github.com/gloscherrybomb/virada-kit-mcp virada-kit`
 
 **Claude Desktop, Gemini CLI, Cursor and other MCP clients** (their MCP settings file, `mcpServers`):
 
 ```json
-{"mcpServers": {"virada-kit": {"command": "uvx", "args": ["--from", "git+https://github.com/OWNER/virada-kit-mcp", "virada-kit"]}}}
+{"mcpServers": {"virada-kit": {"command": "uvx", "args": ["--from", "git+https://github.com/gloscherrybomb/virada-kit-mcp", "virada-kit"]}}}
 ```
 
 Then ask, for example: *"Make a Virada kit from this picture (attached). Use the virada-kit tools; show me the preview
@@ -32,10 +32,17 @@ before exporting."* If you only have a front picture, the agent will propose the
 | `render_sheets` | the flat jersey and bib sheets |
 | `preview_kit` | the kit on the male or female rider from six angles |
 | `compare_to_reference` | your picture beside the kit on the rider from a similar angle |
-| `validate_kit`, `export_kit` | check it and write the `.kit.zip` |
+| `validate_kit`, `export_kit` | check it and write the `.kit.zip`; the file comes back to the agent in the result (and as the resource `kit://<file>`), and a local server also saves it in `~/virada-kits` |
+| `import_kit` | open a kit file to keep working on it |
 
 Agents can build a kit from **layers** (colours, bands, panels, stripes, shapes, lines, text, logos) or paint the
 whole **sheet** as a picture (image models), or both. The format: [SPEC.md](src/virada_kit/SPEC.md).
+
+## Example
+
+![The Virada jersey: reference and the kit on the game's rider](examples/virada/compare.png)
+
+[examples/virada](examples/virada): a product picture made into a kit.
 
 ## The kit file
 

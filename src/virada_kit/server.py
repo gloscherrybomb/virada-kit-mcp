@@ -2,17 +2,21 @@
 
 Run it locally (stdio): `uvx virada-kit` or `uv run virada-kit`; or over HTTP: `virada-kit --http [--port 8000]`.
 Tools: get_kit_spec, get_template, add_asset, list_assets, render_sheets, preview_kit, compare_to_reference,
-validate_kit, export_kit. The kit format: SPEC.md (returned by get_kit_spec).
+validate_kit, export_kit (hands the file back to the agent), import_kit. Resource: kit://<file name>. The kit format: SPEC.md (returned by get_kit_spec).
 """
 import base64, io, json, os, sys, tempfile
 import numpy as np
 from PIL import Image as PILImage
 from mcp.server.mcpserver import MCPServer, Image
+from mcp.types import EmbeddedResource, BlobResourceContents
 from . import sheets, preview, kitfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPEC = open(os.path.join(HERE, 'SPEC.md')).read()
-WORK = os.environ.get('VIRADA_KIT_WORKDIR') or tempfile.mkdtemp(prefix='virada-kit-')
+LOCAL_ = '--http' not in sys.argv
+# exported kits land here: a folder the user can find (local), or a temporary one (a remote server)
+WORK = os.environ.get('VIRADA_KIT_WORKDIR') or (os.path.expanduser('~/virada-kits') if LOCAL_ else tempfile.mkdtemp(prefix='virada-kit-'))
+os.makedirs(WORK, exist_ok=True)
 ASSETS: dict = {}            # name -> PIL image (this server's session)
 LOCAL = '--http' not in sys.argv   # over HTTP the server never reads or writes paths it is given (only base64 in)
 
@@ -117,17 +121,49 @@ def compare_to_reference(kit: dict, reference_path: str | None = None, reference
             'straight front view: a three-quarter picture squeezes the side turned away.',
             _png(preview.sheet_of_views([ref] + crops, ['reference'] + [f'{body} {v}' for v in vs], cols=len(vs) + 1, scale=0.6))]
 
+def _kit_blob(path):
+    name = os.path.basename(path)
+    return EmbeddedResource(resource=BlobResourceContents(uri=f'kit://{name}', mimeType='application/zip',
+                                                          blob=base64.b64encode(open(path, 'rb').read()).decode()))
+
 @mcp.tool()
 def export_kit(kit: dict, path: str | None = None) -> list:
-    """Write the kit file (.kit.zip: kit.json, the two finished sheets, its pictures, previews). path: where (local
-    servers; default the server's work folder). Returns the file's path and a preview to check."""
+    """Write the kit file (.kit.zip: kit.json, the two finished sheets, its pictures, previews) and hand it back: the
+    result carries the file itself (an embedded resource, application/zip, also readable later as kit://<file name>)
+    for you to save or pass on, plus where the server wrote it (path: local servers; default its work folder) and a
+    preview to check."""
     kit = _kit(kit)
     path = os.path.expanduser(path) if (path and LOCAL) else os.path.join(WORK, ''.join(c if c.isalnum() else '_' for c in kit.get('name', 'kit')).strip('_').lower() or 'kit')
     try: out = kitfile.export(kit, ASSETS, path)
     except ValueError as e: return [f'not exported, problems: {e}']
+    EXPORTED[os.path.basename(out)] = out
     ims = kitfile.previews(kit, ASSETS, bodies=('male', 'female'), views=('front34_left',))
-    return [f'exported {out} ({os.path.getsize(out) // 1024} KB). Send this file in to have it reviewed for the game.',
-            _png(preview.sheet_of_views(list(ims.values()), ['male', 'female'], cols=2, scale=0.5))]
+    return [f'exported {os.path.basename(out)} ({os.path.getsize(out) // 1024} KB)' + (f', written to {out}' if LOCAL else '') +
+            '. The file itself is attached (kit://' + os.path.basename(out) + '). Send it in to have it reviewed for the game.',
+            _kit_blob(out), _png(preview.sheet_of_views(list(ims.values()), ['male', 'female'], cols=2, scale=0.5))]
+
+EXPORTED: dict = {}         # file name -> path, for kit://
+
+@mcp.resource('kit://{name}', name='kit file', description='A kit file this server exported (.kit.zip)', mime_type='application/zip')
+def kit_file(name: str) -> bytes:
+    p = EXPORTED.get(name) or os.path.join(WORK, name)
+    if not os.path.exists(p) or not name.endswith('.kit.zip'): raise ValueError(f'no exported kit {name}')
+    return open(p, 'rb').read()
+
+@mcp.tool()
+def import_kit(path: str | None = None, base64_zip: str | None = None) -> list:
+    """Open a .kit.zip (made here or elsewhere) to keep working on it: returns its kit object (to edit and pass to the
+    other tools) and adds its pictures as assets; also shows it on the riders."""
+    if path:
+        if not LOCAL: return ['this server is remote: send the file as base64, not a path']
+        src = os.path.expanduser(path)
+    elif base64_zip:
+        src = os.path.join(WORK, 'imported.kit.zip'); open(src, 'wb').write(base64.b64decode(base64_zip.split(',', 1)[-1]))
+    else: return ['give a path or base64_zip']
+    kit, assets, js, bs = kitfile.load(src); ASSETS.update({n: im.convert('RGBA') for n, im in assets.items()})
+    for k in ('format', 'version', 'exported'): kit.pop(k, None)
+    ims = kitfile.previews(kit, ASSETS, bodies=('male',), views=('front', 'front34_left', 'back'), js=js, bs=bs)
+    return [json.dumps(kit), _png(preview.sheet_of_views(list(ims.values()), ['front', 'front34_left', 'back'], cols=3, scale=0.5))]
 
 def main():
     if '--http' in sys.argv:

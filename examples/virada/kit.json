@@ -1,0 +1,583 @@
+{
+ "name": "Virada",
+ "author": "the owner (reference) / Claude (kit)",
+ "description": "The Virada team jersey from the owner's product picture.",
+ "jersey": {
+  "layers": [
+   {
+    "type": "fill",
+    "colour": [
+     0.4,
+     0.12,
+     0.16
+    ]
+   },
+   {
+    "type": "shape",
+    "panels": [
+     "front"
+    ],
+    "points": [
+     [
+      0,
+      0
+     ],
+     [
+      0.2,
+      0
+     ],
+     [
+      0.17,
+      0.45
+     ],
+     [
+      0.12,
+      0.84
+     ],
+     [
+      0,
+      0.84
+     ]
+    ],
+    "colour": [
+     0.95,
+     0.95,
+     0.96
+    ]
+   },
+   {
+    "type": "line",
+    "panels": [
+     "front"
+    ],
+    "points": [
+     [
+      0.215,
+      0.0
+     ],
+     [
+      0.19,
+      0.42
+     ]
+    ],
+    "width": 0.004,
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ]
+   },
+   {
+    "type": "shape",
+    "panels": [
+     "back"
+    ],
+    "points": [
+     [
+      1,
+      0
+     ],
+     [
+      0.8,
+      0
+     ],
+     [
+      0.83,
+      0.45
+     ],
+     [
+      0.88,
+      0.84
+     ],
+     [
+      1,
+      0.84
+     ]
+    ],
+    "colour": [
+     0.95,
+     0.95,
+     0.96
+    ]
+   },
+   {
+    "type": "u_band",
+    "panels": [
+     "front"
+    ],
+    "u": [
+     0.9,
+     1.0
+    ],
+    "colour": [
+     0.3,
+     0.08,
+     0.11
+    ]
+   },
+   {
+    "type": "u_band",
+    "panels": [
+     "back"
+    ],
+    "u": [
+     0.0,
+     0.1
+    ],
+    "colour": [
+     0.3,
+     0.08,
+     0.11
+    ]
+   },
+   {
+    "type": "shape",
+    "panels": [
+     "front"
+    ],
+    "points": [
+     [
+      0.6,
+      1.01
+     ],
+     [
+      1.01,
+      1.01
+     ],
+     [
+      1.01,
+      0.8
+     ],
+     [
+      0.88,
+      0.86
+     ],
+     [
+      0.72,
+      0.94
+     ]
+    ],
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ]
+   },
+   {
+    "type": "shape",
+    "panels": [
+     "back"
+    ],
+    "points": [
+     [
+      -0.01,
+      1.01
+     ],
+     [
+      0.4,
+      1.01
+     ],
+     [
+      0.28,
+      0.94
+     ],
+     [
+      0.12,
+      0.86
+     ],
+     [
+      -0.01,
+      0.8
+     ]
+    ],
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ]
+   },
+   {
+    "type": "line",
+    "panels": [
+     "front"
+    ],
+    "points": [
+     [
+      0.86,
+      0.58
+     ],
+     [
+      0.7,
+      0.34
+     ],
+     [
+      0.66,
+      0.0
+     ]
+    ],
+    "width": 0.004,
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ]
+   },
+   {
+    "type": "line",
+    "panels": [
+     "front"
+    ],
+    "points": [
+     [
+      0.88,
+      0.5
+     ],
+     [
+      0.74,
+      0.31
+     ],
+     [
+      0.72,
+      0.1
+     ]
+    ],
+    "width": 0.004,
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ]
+   },
+   {
+    "type": "line",
+    "panels": [
+     "front"
+    ],
+    "points": [
+     [
+      0.83,
+      0.39
+     ],
+     [
+      0.71,
+      0.25
+     ]
+    ],
+    "width": 0.003,
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ]
+   },
+   {
+    "type": "shape",
+    "panels": [
+     "front"
+    ],
+    "points": [
+     [
+      0.78,
+      0.62
+     ],
+     [
+      0.86,
+      0.66
+     ],
+     [
+      0.74,
+      0.4
+     ],
+     [
+      0.7,
+      0.42
+     ]
+    ],
+    "colour": [
+     0.3,
+     0.08,
+     0.11
+    ],
+    "opacity": 0.8
+   },
+   {
+    "type": "shape",
+    "points": [
+     [
+      0.375,
+      0.8
+     ],
+     [
+      0.455,
+      0.8
+     ],
+     [
+      0.515,
+      0.5900000000000001
+     ],
+     [
+      0.48,
+      0.5900000000000001
+     ]
+    ],
+    "colour": [
+     0.95,
+     0.95,
+     0.96
+    ],
+    "panels": [
+     "front"
+    ]
+   },
+   {
+    "type": "shape",
+    "points": [
+     [
+      0.535,
+      0.8
+     ],
+     [
+      0.625,
+      0.8
+     ],
+     [
+      0.525,
+      0.5900000000000001
+     ],
+     [
+      0.485,
+      0.5900000000000001
+     ]
+    ],
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ],
+    "opacity": 0.9,
+    "panels": [
+     "front"
+    ]
+   },
+   {
+    "type": "text",
+    "panel": "front",
+    "text": "VIRADA",
+    "at": [
+     0.5,
+     0.545
+    ],
+    "height": 0.075,
+    "colour": [
+     0.95,
+     0.95,
+     0.96
+    ],
+    "font": "Montserrat",
+    "weight": 600,
+    "letter_spacing": 0.16
+   },
+   {
+    "type": "text",
+    "panel": "front",
+    "text": "CYCLING VIRTUAL",
+    "at": [
+     0.5,
+     0.49
+    ],
+    "height": 0.028,
+    "colour": [
+     0.93,
+     0.55,
+     0.55
+    ],
+    "font": "Montserrat",
+    "weight": 500,
+    "letter_spacing": 0.36
+   },
+   {
+    "type": "shape",
+    "points": [
+     [
+      0.2075,
+      0.9
+     ],
+     [
+      0.2347,
+      0.9
+     ],
+     [
+      0.2551,
+      0.8250000000000001
+     ],
+     [
+      0.2432,
+      0.8250000000000001
+     ]
+    ],
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ],
+    "panels": [
+     "front"
+    ]
+   },
+   {
+    "type": "shape",
+    "points": [
+     [
+      0.26189999999999997,
+      0.9
+     ],
+     [
+      0.2925,
+      0.9
+     ],
+     [
+      0.2585,
+      0.8250000000000001
+     ],
+     [
+      0.2449,
+      0.8250000000000001
+     ]
+    ],
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ],
+    "opacity": 0.9,
+    "panels": [
+     "front"
+    ]
+   },
+   {
+    "type": "fill",
+    "panels": [
+     "sleeve_r"
+    ],
+    "colour": [
+     0.95,
+     0.95,
+     0.96
+    ]
+   },
+   {
+    "type": "fill",
+    "panels": [
+     "sleeve_l"
+    ],
+    "colour": [
+     0.97,
+     0.36,
+     0.33
+    ]
+   },
+   {
+    "type": "shape",
+    "points": [
+     [
+      0.33999999999999997,
+      0.4
+     ],
+     [
+      0.3912,
+      0.4
+     ],
+     [
+      0.4296,
+      0.7
+     ],
+     [
+      0.4072,
+      0.7
+     ]
+    ],
+    "colour": [
+     0.4,
+     0.12,
+     0.16
+    ],
+    "panels": [
+     "sleeve_l"
+    ]
+   },
+   {
+    "type": "shape",
+    "points": [
+     [
+      0.4424,
+      0.4
+     ],
+     [
+      0.5,
+      0.4
+     ],
+     [
+      0.436,
+      0.7
+     ],
+     [
+      0.4104,
+      0.7
+     ]
+    ],
+    "colour": [
+     0.4,
+     0.12,
+     0.16
+    ],
+    "panels": [
+     "sleeve_l"
+    ]
+   },
+   {
+    "type": "fill",
+    "panels": [
+     "collar"
+    ],
+    "colour": [
+     0.4,
+     0.12,
+     0.16
+    ]
+   }
+  ],
+  "zip": [
+   0.22,
+   0.06,
+   0.09
+  ]
+ },
+ "bib": {
+  "layers": [
+   {
+    "type": "fill",
+    "colour": [
+     0.19,
+     0.19,
+     0.21
+    ]
+   }
+  ]
+ },
+ "socks": [
+  0.96,
+  0.95,
+  0.92
+ ],
+ "provenance": {
+  "made_with": "Claude (by hand, through the virada-kit tools)",
+  "references": [
+   "owner: product picture, front three-quarter from the left"
+  ],
+  "invented": [
+   "the back (continued the side panels and the yoke; plain otherwise)",
+   "the bibs (plain charcoal, as in the picture)",
+   "the right sleeve's back"
+  ]
+ }
+}

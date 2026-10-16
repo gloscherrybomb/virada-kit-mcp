@@ -86,7 +86,8 @@ drawn on top of the painted sheet (crisp text and logos over a painted backgroun
 4. Write the kit; `preview_kit` to see it on the riders; `compare_to_reference` with the user's picture and the view
    nearest its angle (`front34_left` = the rider's front turned to show their left side); fix what differs and repeat.
    Check both bodies (male, female) and the back.
-5. `validate_kit`, then `export_kit`. Fill `provenance`: what you made it with, the references, and `invented`: the
+5. `validate_kit`, then `export_kit`: it returns the `.kit.zip` itself (attached to the result, and as the resource
+   `kit://<file name>`); save it for the user or hand it on. `import_kit` opens a kit file to keep working on it. Fill `provenance`: what you made it with, the references, and `invented`: the
    parts you made up because no reference showed them.
 
 Names and logos: only use names, logos and designs the user owns or made. Submitted kits are reviewed before they
