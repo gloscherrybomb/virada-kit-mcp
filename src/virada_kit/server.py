@@ -190,11 +190,15 @@ def import_kit(path: str | None = None, base64_zip: str | None = None, ctx: Cont
 PUBLIC_URL = os.environ.get('VIRADA_KIT_PUBLIC_URL', 'http://127.0.0.1:8000').rstrip('/')
 
 def _sweep_downloads(max_age=3600):
+    """A remote server keeps nothing for long: download links and exported files go after an hour."""
     import time, shutil
     d = os.path.join(WORK, 'dl')
     for t in os.listdir(d) if os.path.isdir(d) else []:
         p = os.path.join(d, t)
         if time.time() - os.path.getmtime(p) > max_age: shutil.rmtree(p, ignore_errors=True)
+    for f in os.listdir(WORK):
+        p = os.path.join(WORK, f)
+        if f.endswith('.kit.zip') and time.time() - os.path.getmtime(p) > max_age: os.remove(p)
 
 @mcp.custom_route('/kits/{token}/{name}', methods=['GET'], include_in_schema=False)
 async def download(request):
