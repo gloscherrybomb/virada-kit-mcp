@@ -32,7 +32,7 @@ Text drawn upright on any panel reads correctly on the rider (nothing is mirrore
 - the zip runs up FRONT at u = 0.5; the three rear pockets are on BACK, v about 0.08-0.36, u about 0.22-0.78;
 - the chest is around v 0.40-0.60 on FRONT; the shoulder tops are the top ~8% of FRONT and BACK (keep fine detail
   out of there: it wraps over the shoulder);
-- the cuff band is the bottom ~22% of each sleeve (v 0.78-1); the gripper is the bottom ~10% of each leg (v 0-0.10);
+- the cuff band is the bottom ~18% of each sleeve (v 0.82-1); the gripper is the bottom ~10% of each leg (v 0-0.10);
 - the bib's top half (v > 0.55) is mostly under the jersey.
 The guide pictures (`get_template`) show each body's exact edges, seams, zip and pockets on the sheets.
 
@@ -93,6 +93,11 @@ picture you can see), and `export_kit`; give the user the download link it retur
 3. Add logos with `add_asset` (crop them cleanly from the reference or use files the user gives; transparent PNG).
    Measure from the references against landmarks, not the picture's edges: a chest logo is usually centred on the
    zip (FRONT u = 0.5); a three-quarter photo squeezes the side turned away, so things look off-centre in it.
+   **Sizes:** in the straight front view the FRONT panel's u runs from side seam to side seam at the chest; the part
+   you can see from the front is about u 0.08 to 0.92. `compare_to_reference` draws the panel grid on the rider: say
+   "the wordmark spans from the left armpit seam to the right one" in the reference, find the same span on the grid,
+   and use those numbers. Make pictures at least as big (in pixels) as they will be shown: a FRONT panel is 1024 px
+   wide, so a logo spanning 60% of it wants a picture about 600 px wide or more.
 4. Write the kit; `preview_kit` to see it on the riders; `compare_to_reference` with the user's picture and the view
    nearest its angle (`front34_left` = the rider's front turned to show their left side); fix what differs and repeat.
    Check both bodies (male, female) and the back.
@@ -111,7 +116,7 @@ appear in the game.
     {"type": "chevron", "panels": ["front", "back"], "v": 0.52, "depth": -0.12, "width": 0.10, "colour": [0.84, 0.13, 0.15]},
     {"type": "edges", "panels": ["front", "back"], "width": 0.10, "colour": [0.11, 0.11, 0.13]},
     {"type": "fill", "panels": ["sleeve*"], "colour": [0.11, 0.11, 0.13]},
-    {"type": "band", "panels": ["sleeve*"], "v": [0.78, 1.0], "colour": [0.84, 0.13, 0.15]},
+    {"type": "band", "panels": ["sleeve*"], "v": [0.82, 1.0], "colour": [0.84, 0.13, 0.15]},
     {"type": "text", "panel": "front", "text": "RED", "at": [0.5, 0.62], "height": 0.05, "colour": [0.11, 0.11, 0.13], "font": "Oswald", "weight": 600}],
    "zip": [0.11, 0.11, 0.13]},
  "bib": {"layers": [{"type": "fill", "colour": [0.11, 0.11, 0.13]}, {"type": "band", "v": [0, 0.104], "colour": [0.2, 0.2, 0.23]}]},

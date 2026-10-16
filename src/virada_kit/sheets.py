@@ -209,7 +209,7 @@ def clean_template(sheet):
         if p != 'collar': d.text((x0 + 16, y0 + 58), f'top of panel = {up}', fill=(150, 150, 150), font=fs)
         if p == 'front': dash(x0 + w // 2, y0, x0 + w // 2, y0 + h)                                   # the zip
         if p == 'back': d.rectangle([x0 + int(w * 0.22), y0 + int(h * 0.64), x0 + int(w * 0.78), y0 + int(h * 0.92)], outline=g, width=3)  # pockets
-        if p.startswith('sleeve'): dash(x0, y0 + int(h * 0.78), x0 + w, y0 + int(h * 0.78))             # the cuff
+        if p.startswith('sleeve'): dash(x0, y0 + int(h * 0.82), x0 + w, y0 + int(h * 0.82))             # the cuff
         if p.startswith('leg'): dash(x0, y0 + int(h * 0.9), x0 + w, y0 + int(h * 0.9))                  # the gripper
         if p in ('front', 'back'): dash(x0, y0 + int(h * 0.08), x0 + w, y0 + int(h * 0.08))              # over the shoulders above this
     return im

@@ -78,6 +78,21 @@ def validate(kit, assets):
     if len(assets) > MAX_ASSETS: p.append(f'more than {MAX_ASSETS} assets')
     return p
 
+def warnings(kit, assets):
+    """Things that will look worse than they should (not errors): pictures shown much bigger than they are."""
+    w = []
+    for part, sheet in (('jersey', 'jersey'), ('bib', 'bib')):
+        for i, L in enumerate((kit.get(part) or {}).get('layers', [])):
+            if L.get('type') != 'image' or L.get('asset') not in assets or L.get('panel') not in sheets.LAYOUT[sheet]['panels']: continue
+            a = assets[L['asset']]; pw, ph = sheets.LAYOUT[sheet]['panels'][L['panel']]['rect'][2:]
+            if L.get('fit') in ('cover', 'contain'): k = (max if L['fit'] == 'cover' else min)(pw / a.width, ph / a.height) * L.get('scale', 1)
+            elif 'width' in L: k = L['width'] * pw / a.width
+            else: k = L.get('height', 0.1) * ph / a.height
+            if k > 1.5:
+                w.append(f'{part} layer {i}: picture "{L["asset"]}" is {a.width} x {a.height} px but shown {k:.1f}x bigger, so it '
+                         f'will look soft: add it again at about {int(a.width * k)} px wide (a sharper cut-out, or redraw it big)')
+    return w
+
 def render_sheets(kit, assets):
     """The two finished sheets, (H, W, 3) floats."""
     out = {}

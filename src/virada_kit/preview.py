@@ -82,6 +82,21 @@ def crop_to_kit(img, body, view, margin=0.06, jersey_only=False):
     y0, y1, x0, x1 = ys.min(), ys.max(), xs.min(), xs.max(); my, mx = int((y1 - y0) * margin), int((x1 - x0) * margin)
     return img[max(0, y0 - my):y1 + my, max(0, x0 - mx):x1 + mx]
 
+def grid_overlay(img, body, view, colour=(0.0, 0.75, 0.85)):
+    """The FRONT and BACK panels' own coordinates drawn on the rider: a thin line every 0.1 of u and v, a thicker one at
+    u = 0.5, so sizes and places can be read off a preview and set against a reference picture."""
+    P = _view(body, view); m = P['jmap']; on = m[..., 0] > 0
+    sx = (m[..., 0].astype(np.float64) - 1) / 65534; sy = (m[..., 1].astype(np.float64) - 1) / 65534
+    torso = on & (sy < 0.5)                                         # FRONT and BACK fill the jersey sheet's top half
+    u = np.where(sx < 0.5, sx * 2, sx * 2 - 1); v = 1 - sy * 2
+    out = img.copy(); c = np.array(colour, np.float32)
+    for q, width in ((u, 0.007), (v, 0.006)):
+        d = np.abs(q * 10 - np.round(q * 10)) / 10
+        ln = torso & (d < width / 2)
+        out[ln] = out[ln] * 0.6 + c * 0.4
+    mid = torso & (np.abs(u - 0.5) < 0.004); out[mid] = out[mid] * 0.3 + c * 0.7
+    return out
+
 def _font(size):
     return ImageFont.truetype(os.path.join(DATA, 'fonts', 'Montserrat.ttf'), size)
 

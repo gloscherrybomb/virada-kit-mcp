@@ -173,8 +173,8 @@ def validate_kit(kit: dict | str, ctx: Context = None) -> str:
     why = _gate(ctx, 'validate_kit')
     if why: return why
     kit = _kit(kit); ASSETS = STORE.for_kit(kit)
-    p = _problems(kit, ASSETS, 'validate_kit')
-    return 'valid' if not p else 'problems:\n- ' + '\n- '.join(p)
+    p = _problems(kit, ASSETS, 'validate_kit'); w = kitfile.warnings(kit, ASSETS)
+    return ('valid' if not p else 'problems:\n- ' + '\n- '.join(p)) + ('\nwarnings:\n- ' + '\n- '.join(w) if w else '')
 
 @mcp.tool(annotations=SAFE)
 def render_sheets(kit: dict | str, ctx: Context = None) -> list:
@@ -206,12 +206,15 @@ def preview_kit(kit: dict | str, body: str = 'male', views: list[str] | None = N
 
 @mcp.tool(annotations=SAFE)
 def compare_to_reference(kit: dict | str, reference_path: str | None = None, reference_base64: str | None = None,
-                         body: str = 'male', view: str = 'front34_left', jersey_only: bool = True, ctx: Context = None) -> list:
+                         body: str = 'male', view: str = 'front34_left', jersey_only: bool = True, grid: bool = True,
+                         ctx: Context = None) -> list:
     """The user's reference picture beside the kit on the game's rider from a similar angle, to spot what differs
     (colours, where panels and logos sit, sizes). Pick the view nearest the reference's angle. The rider is cropped to
     the jersey (jersey_only, default) or to the jersey and bibs, as product pictures are framed. If you can't send the
     picture's bytes (a chat app), leave the reference out: you get the rider's views alone to set beside the picture
-    you can see."""
+    you can see. grid (default on) draws the FRONT and BACK panels' coordinates on the rider (a line every 0.1 of u and
+    v, thicker at u = 0.5): read off where and how big each logo, stripe and panel edge is in the reference, and set the
+    same numbers in the kit."""
     why = _gate(ctx, 'compare_to_reference')
     if why: return [why]
     kit = _kit(kit); ASSETS = STORE.for_kit(kit)
@@ -220,12 +223,16 @@ def compare_to_reference(kit: dict | str, reference_path: str | None = None, ref
     ref = _open_image(reference_path, reference_base64).convert('RGB') if (reference_path or reference_base64) else None
     vs = [view] + (['front'] if view != 'front' else [])          # and straight on: centring and size read true there
     ims = _hv(kitfile.previews)(kit, ASSETS, bodies=(body,), views=tuple(vs))
-    crops = [preview.crop_to_kit(ims[f'{body}_{v}'], body, v, jersey_only=jersey_only) for v in vs]
+    crops = [preview.crop_to_kit(preview.grid_overlay(ims[f'{body}_{v}'], body, v) if grid else ims[f'{body}_{v}'], body, v,
+                                 jersey_only=jersey_only) for v in vs]
     COMPARED[_fingerprint(kit)] = time.time()
     if len(COMPARED) > 5000: COMPARED.clear()
     pics, labs = ([ref] if ref else []) + crops, (['reference'] if ref else []) + [f'{body} {v}' for v in vs]
     return [('left: the reference; then ' if ref else '') + f'the kit on the {body} rider: {", ".join(vs)}. Judge centring '
-            'and size on the straight front view: a three-quarter picture squeezes the side turned away.',
+            'and size on the straight front view: a three-quarter picture squeezes the side turned away.' +
+            (' The cyan lines are the panel grid (every 0.1 of u and v; the thick one is u = 0.5): measure the reference '
+             'against the same landmarks (the zip, the seams, the hem, the shoulders) and match sizes, not just places.' if grid else '') +
+            ''.join('\nwarning: ' + x for x in kitfile.warnings(kit, ASSETS)),
             _png(preview.sheet_of_views(pics, labs, cols=len(pics), scale=0.6))]
 
 COMPARED: dict = {}        # kit fingerprint -> time it was compared to a reference
