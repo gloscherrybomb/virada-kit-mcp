@@ -1,0 +1,17 @@
+{
+ "body": "regular_female",
+ "views": {
+  "front": 0,
+  "front34_left": 40,
+  "left": 90,
+  "back": 180,
+  "right": -90,
+  "front34_right": -40
+ },
+ "size": [
+  768,
+  1024
+ ],
+ "normal": "world, facing +X = the rider forward, +Z up",
+ "pose": "standing, arms down (a shop mannequin)"
+}

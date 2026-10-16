@@ -1,0 +1,88 @@
+{
+ "name": "Red chevron",
+ "_about": "Built-in. White with a red chevron across the chest and back, black side panels and sleeves.",
+ "layers": [
+  {
+   "type": "fill",
+   "colour": [
+    0.96,
+    0.96,
+    0.94
+   ]
+  },
+  {
+   "type": "chevron",
+   "panels": [
+    "front",
+    "back"
+   ],
+   "v": 0.52,
+   "depth": -0.12,
+   "width": 0.1,
+   "colour": [
+    0.84,
+    0.13,
+    0.15
+   ],
+   "edge": {
+    "width": 0.003,
+    "dark": 0.5
+   }
+  },
+  {
+   "type": "edges",
+   "panels": [
+    "front",
+    "back"
+   ],
+   "width": 0.1,
+   "colour": [
+    0.11,
+    0.11,
+    0.13
+   ]
+  },
+  {
+   "type": "fill",
+   "panels": [
+    "sleeve*"
+   ],
+   "colour": [
+    0.11,
+    0.11,
+    0.13
+   ]
+  },
+  {
+   "type": "band",
+   "panels": [
+    "sleeve*"
+   ],
+   "v": [
+    0.78,
+    1.0
+   ],
+   "colour": [
+    0.84,
+    0.13,
+    0.15
+   ]
+  },
+  {
+   "type": "fill",
+   "panels": [
+    "collar"
+   ],
+   "colour": [
+    0.84,
+    0.13,
+    0.15
+   ]
+  }
+ ],
+ "zip": [
+  0.11,
+  0.11,
+  0.13
+ ]
+}

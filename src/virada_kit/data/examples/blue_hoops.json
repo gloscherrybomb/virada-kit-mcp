@@ -1,0 +1,93 @@
+{
+ "name": "Blue hoops",
+ "_about": "Built-in. Royal blue with three white hoops round the middle, white cuffs and collar.",
+ "layers": [
+  {
+   "type": "fill",
+   "colour": [
+    0.13,
+    0.3,
+    0.7
+   ]
+  },
+  {
+   "type": "band",
+   "panels": [
+    "front",
+    "back"
+   ],
+   "v": [
+    0.36,
+    0.4
+   ],
+   "colour": [
+    0.96,
+    0.96,
+    0.94
+   ]
+  },
+  {
+   "type": "band",
+   "panels": [
+    "front",
+    "back"
+   ],
+   "v": [
+    0.45,
+    0.49
+   ],
+   "colour": [
+    0.96,
+    0.96,
+    0.94
+   ]
+  },
+  {
+   "type": "band",
+   "panels": [
+    "front",
+    "back"
+   ],
+   "v": [
+    0.54,
+    0.58
+   ],
+   "colour": [
+    0.96,
+    0.96,
+    0.94
+   ]
+  },
+  {
+   "type": "band",
+   "panels": [
+    "sleeve*"
+   ],
+   "v": [
+    0.78,
+    1.0
+   ],
+   "colour": [
+    0.96,
+    0.96,
+    0.94
+   ]
+  },
+  {
+   "type": "fill",
+   "panels": [
+    "collar"
+   ],
+   "colour": [
+    0.96,
+    0.96,
+    0.94
+   ]
+  }
+ ],
+ "zip": [
+  0.1,
+  0.12,
+  0.25
+ ]
+}

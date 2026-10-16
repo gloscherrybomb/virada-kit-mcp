@@ -1,0 +1,75 @@
+{
+ "_about": "The approved jersey (target picture rider/target/concepts/target_front34.png), as layers on the jersey sheet (style/kit_sheet.py). Designer sRGB; v and u are panel fractions (custom/kits/sheet_layout.json).",
+ "name": "Teal lilac",
+ "layers": [
+  {
+   "type": "fill",
+   "colour": [
+    0.1,
+    0.62,
+    0.66
+   ]
+  },
+  {
+   "type": "band",
+   "panels": [
+    "front",
+    "back"
+   ],
+   "v": [
+    0.404,
+    0.534
+   ],
+   "colour": [
+    0.76,
+    0.75,
+    0.93
+   ],
+   "_": "the chest band: 1.27-1.335 m on the male, where it was approved",
+   "edge": {
+    "width": 0.0035,
+    "dark": 0.42,
+    "_": "the edge line it was approved with (2.2 mm x 0.8 on the male)"
+   }
+  },
+  {
+   "type": "band",
+   "panels": [
+    "sleeve*"
+   ],
+   "v": [
+    0.78,
+    1.0
+   ],
+   "colour": [
+    0.8,
+    0.8,
+    0.93
+   ],
+   "_": "the cuffs"
+  },
+  {
+   "type": "fill",
+   "panels": [
+    "collar"
+   ],
+   "colour": [
+    0.1,
+    0.62,
+    0.66
+   ]
+  }
+ ],
+ "zip": [
+  0.13,
+  0.15,
+  0.22
+ ],
+ "dots": {
+  "cuff": [
+   0.97,
+   0.97,
+   0.99
+  ]
+ }
+}

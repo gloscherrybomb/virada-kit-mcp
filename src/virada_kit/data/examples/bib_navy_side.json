@@ -1,0 +1,45 @@
+{
+ "name": "Navy side stripe",
+ "_about": "Built-in. Navy with a teal stripe down the outside of each leg.",
+ "layers": [
+  {
+   "type": "fill",
+   "colour": [
+    0.1,
+    0.12,
+    0.22
+   ]
+  },
+  {
+   "type": "u_band",
+   "u": [
+    0.44,
+    0.56
+   ],
+   "colour": [
+    0.1,
+    0.62,
+    0.66
+   ]
+  },
+  {
+   "type": "band",
+   "v": [
+    0,
+    0.104
+   ],
+   "colour": [
+    0.15,
+    0.18,
+    0.31
+   ]
+  }
+ ],
+ "dots": {
+  "gripper": [
+   0.32,
+   0.36,
+   0.52
+  ]
+ }
+}

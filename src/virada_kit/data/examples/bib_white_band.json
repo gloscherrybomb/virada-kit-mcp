@@ -1,0 +1,38 @@
+{
+ "name": "White band",
+ "_about": "Built-in. Black with a white band above the gripper.",
+ "layers": [
+  {
+   "type": "fill",
+   "colour": [
+    0.11,
+    0.11,
+    0.13
+   ]
+  },
+  {
+   "type": "band",
+   "v": [
+    0.13,
+    0.19
+   ],
+   "colour": [
+    0.96,
+    0.96,
+    0.94
+   ]
+  },
+  {
+   "type": "band",
+   "v": [
+    0,
+    0.104
+   ],
+   "colour": [
+    0.2,
+    0.2,
+    0.23
+   ]
+  }
+ ]
+}

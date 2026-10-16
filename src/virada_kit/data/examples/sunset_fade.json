@@ -1,0 +1,87 @@
+{
+ "name": "Sunset fade",
+ "_about": "Built-in. Yellow at the hem fading to orange-red at the shoulders, a halftone of dots fading out above the hem, black cuffs and collar.",
+ "layers": [
+  {
+   "type": "gradient",
+   "panels": [
+    "front",
+    "back"
+   ],
+   "v": [
+    0.05,
+    0.95
+   ],
+   "from": [
+    0.98,
+    0.8,
+    0.16
+   ],
+   "to": [
+    0.9,
+    0.3,
+    0.14
+   ]
+  },
+  {
+   "type": "dots",
+   "panels": [
+    "front",
+    "back"
+   ],
+   "v": [
+    0.0,
+    0.35
+   ],
+   "pitch": 0.035,
+   "max": 0.85,
+   "colour": [
+    0.93,
+    0.52,
+    0.12
+   ]
+  },
+  {
+   "type": "fill",
+   "panels": [
+    "sleeve*"
+   ],
+   "colour": [
+    0.9,
+    0.33,
+    0.14
+   ]
+  },
+  {
+   "type": "band",
+   "panels": [
+    "sleeve*"
+   ],
+   "v": [
+    0.78,
+    1.0
+   ],
+   "colour": [
+    0.11,
+    0.11,
+    0.13
+   ]
+  },
+  {
+   "type": "fill",
+   "panels": [
+    "collar"
+   ],
+   "colour": [
+    0.11,
+    0.11,
+    0.13
+   ]
+  }
+ ],
+ "zip": [
+  0.11,
+  0.11,
+  0.13
+ ]
+}

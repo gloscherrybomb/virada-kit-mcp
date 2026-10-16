@@ -1,0 +1,34 @@
+{
+ "_about": "The approved bib shorts, as layers on the bib sheet. Designer sRGB.",
+ "name": "Navy",
+ "layers": [
+  {
+   "type": "fill",
+   "colour": [
+    0.1,
+    0.12,
+    0.22
+   ]
+  },
+  {
+   "type": "band",
+   "v": [
+    0.0,
+    0.104
+   ],
+   "colour": [
+    0.15,
+    0.18,
+    0.31
+   ],
+   "_": "the gripper: 4.5 cm on the male"
+  }
+ ],
+ "dots": {
+  "gripper": [
+   0.32,
+   0.36,
+   0.52
+  ]
+ }
+}
