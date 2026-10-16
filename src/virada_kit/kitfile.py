@@ -26,7 +26,7 @@ MAX_LAYERS, MAX_ASSETS, MAX_ASSET_PX, MAX_TEXT = 80, 16, 2048, 40
 LAYER_FIELDS = {
     'fill': [], 'gradient': ['v', 'from', 'to'], 'band': ['v'], 'u_band': ['u'], 'edges': ['width'],
     'chevron': ['v', 'depth', 'width'], 'stripes': ['pitch', 'width'], 'dots': ['v', 'pitch'], 'shape': ['points'],
-    'line': ['points', 'width'], 'text': ['text', 'panel', 'at'], 'image': ['asset', 'panel', 'at'],
+    'line': ['points', 'width'], 'text': ['text', 'panel', 'at'], 'image': ['asset', 'panel'],
 }
 
 def _rgb_ok(c):

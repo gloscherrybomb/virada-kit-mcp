@@ -49,3 +49,10 @@ def test_export_round_trip(tmp_path):
 def test_shadow_rule_greys_get_a_tint():
     s = shade.shadow_of(np.array([0.96, 0.96, 0.96]), 'cloth')
     assert s[2] > s[0]                                                # white's shadow turns violet-blue
+
+def test_image_cover_fills_the_panel():
+    from PIL import Image
+    pic = Image.new('RGBA', (300, 200), (0, 200, 0, 255))
+    im = sheets.render({'background': [0, 0, 0], 'layers': [{'type': 'image', 'asset': 'p', 'panel': 'front', 'fit': 'cover'}]}, 'jersey', {'p': pic})
+    front = im[:1024, :1024, 1]
+    assert front.min() > 0.7 and im[:1024, 1024:, 1].max() == 0

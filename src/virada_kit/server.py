@@ -79,14 +79,27 @@ def _hv(fn):
         finally: LIMITER.heavy.release()
     return run
 
+INSTRUCTIONS = '''Makes cycling kits (a jersey and bib shorts) for the Virada game from the user's pictures of a kit. When the
+user asks for a kit, or gives you kit pictures and mentions Virada, follow this without being told:
+1. Call get_kit_spec and read all of it: the sheet layout, the panels' directions, the layers, the rules.
+2. Study the user's pictures: list every colour, panel, stripe, logo, text and where each sits on the body (measure
+   against the zip, the side seams, the hem, the shoulders). If they don't show the back, the far sleeve or the bibs,
+   propose those (keep the design's language) and ask the user before you build them.
+3. If a picture holds artwork (an illustration, a scene, a photo print) or a logo the layers can't draw well, don't
+   redraw it from shapes: cut it out of the user's picture, add_asset it, and place it as an 'image' layer ("fit":
+   "cover" fills a panel); draw the plain parts with layers.
+4. Build the kit, then loop: preview_kit and compare_to_reference (with the user's picture, from the view nearest its
+   angle; the straight front view is included), list what differs, fix it. Do at least three rounds, and keep going
+   until the front, the back and both sleeves match; check the female rider too.
+5. validate_kit, then export_kit; give the user the file (and its download link on a remote server), and say what
+   you invented.
+Never stop at a rough first draft: the kit must look like the user's pictures on the game's rider.'''
 _PUB = os.environ.get('VIRADA_KIT_PUBLIC_URL', '').rstrip('/')
 ICONS = [Icon(src=f'{_PUB}/icon-512.png', mimeType='image/png', sizes=['512x512']),
          Icon(src=f'{_PUB}/icon-192.png', mimeType='image/png', sizes=['192x192'])] if _PUB.startswith('https://') else None
 mcp = MCPServer('virada-kit', title='Virada kit maker', version='0.1.0', icons=ICONS,
                 website_url='https://github.com/gloscherrybomb/virada-kit-mcp',
-                instructions='Makes cycling kits (jersey + bib shorts) for the Virada game from the user\'s reference '
-                             'pictures. Start with get_kit_spec; preview and compare until the kit on the game\'s rider '
-                             'matches the references; then export_kit.')
+                instructions=INSTRUCTIONS)
 
 def _png(img, max_side=None):
     im = img if isinstance(img, PILImage.Image) else PILImage.fromarray((np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8))
@@ -176,7 +189,8 @@ def render_sheets(kit: dict | str, ctx: Context = None) -> list:
 
 @mcp.tool(annotations=SAFE)
 def preview_kit(kit: dict | str, body: str = 'male', views: list[str] | None = None, ctx: Context = None) -> list:
-    """The kit on the game's rider, in the game's look. body: 'male' or 'female'. views (any of front, front34_left,
+    """The kit on the game's rider, in the game's look; follow it with compare_to_reference and fix what differs.
+    body: 'male' or 'female'. views (any of front, front34_left,
     left, back, right, front34_right; default front, front34_left, back). front34_left = the front turned to show the
     rider's left side, like most product photos."""
     why = _gate(ctx, 'preview_kit')
@@ -207,10 +221,16 @@ def compare_to_reference(kit: dict | str, reference_path: str | None = None, ref
     vs = [view] + (['front'] if view != 'front' else [])          # and straight on: centring and size read true there
     ims = _hv(kitfile.previews)(kit, ASSETS, bodies=(body,), views=tuple(vs))
     crops = [preview.crop_to_kit(ims[f'{body}_{v}'], body, v, jersey_only=jersey_only) for v in vs]
+    COMPARED[_fingerprint(kit)] = time.time()
+    if len(COMPARED) > 5000: COMPARED.clear()
     pics, labs = ([ref] if ref else []) + crops, (['reference'] if ref else []) + [f'{body} {v}' for v in vs]
     return [('left: the reference; then ' if ref else '') + f'the kit on the {body} rider: {", ".join(vs)}. Judge centring '
             'and size on the straight front view: a three-quarter picture squeezes the side turned away.',
             _png(preview.sheet_of_views(pics, labs, cols=len(pics), scale=0.6))]
+
+COMPARED: dict = {}        # kit fingerprint -> time it was compared to a reference
+def _fingerprint(kit):
+    return hashlib.sha256(json.dumps({k: kit.get(k) for k in ('jersey', 'bib')}, sort_keys=True).encode()).hexdigest()[:16]
 
 def _kit_blob(path):
     name = os.path.basename(path)
@@ -218,14 +238,23 @@ def _kit_blob(path):
                                                           blob=base64.b64encode(open(path, 'rb').read()).decode()))
 
 @mcp.tool(annotations=SAFE)
-def export_kit(kit: dict | str, path: str | None = None, ctx: Context = None) -> list:
-    """Write the kit file (.kit.zip: kit.json, the two finished sheets, its pictures, previews) and hand it back: the
+def export_kit(kit: dict | str, path: str | None = None, user_approved: bool = False, ctx: Context = None) -> list:
+    """Write the kit file (.kit.zip: kit.json, the two finished sheets, its pictures, previews) and hand it back. Only
+    after the compare loop shows the kit matching the user's pictures (see get_kit_spec's workflow); it refuses a kit
+    that was never compared, or one with invented parts, until user_approved=true (the user has seen and agreed). The
     result carries the file itself (an embedded resource, application/zip, also readable later as kit://<file name>)
     for you to save or pass on, plus where the server wrote it (path: local servers; default its work folder) and a
     preview to check."""
     why = _gate(ctx, 'export_kit')
     if why: return [why]
     kit = _kit(kit); ASSETS = STORE.for_kit(kit)
+    if not user_approved and _fingerprint(kit) not in COMPARED:
+        return ['not exported yet: this exact kit has not been through compare_to_reference. Compare it with the user\'s '
+                'picture (front and three-quarter), fix what differs, and export the version you compared. If the user '
+                'has seen the previews and wants it as it is, call export_kit again with user_approved=true.']
+    if not user_approved and (kit.get('provenance') or {}).get('invented'):
+        return ['not exported yet: the kit has invented parts (' + '; '.join(map(str, kit['provenance']['invented'])) +
+                '). Show the user previews of them and ask; when they approve, call export_kit with user_approved=true.']
     path = os.path.expanduser(path) if (path and LOCAL) else os.path.join(WORK, ''.join(c if c.isalnum() else '_' for c in kit.get('name', 'kit')).strip('_').lower() or 'kit')
     try: out = _hv(kitfile.export)(kit, ASSETS, path)
     except ValueError as e:
@@ -246,6 +275,10 @@ def export_kit(kit: dict | str, path: str | None = None, ctx: Context = None) ->
             _kit_blob(out), _png(preview.sheet_of_views(list(ims.values()), ['male', 'female'], cols=2, scale=0.5))]
 
 EXPORTED: dict = {}         # file name -> path, for kit://
+
+@mcp.prompt(name='make_kit', description='Make a Virada kit from your kit pictures')
+def make_kit_prompt(pictures: str = 'the pictures I attached') -> str:
+    return f'Make a Virada kit from {pictures}, using the virada-kit tools.\n\n' + INSTRUCTIONS
 
 @mcp.resource('kit://{name}', name='kit file', description='A kit file this server exported (.kit.zip)', mime_type='application/zip')
 def kit_file(name: str) -> bytes:

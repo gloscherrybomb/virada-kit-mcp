@@ -56,12 +56,16 @@ design, and shades it in its comic look. Paint flat colour: no shading, no folds
 | `shape` | points [[u, v], ...], colour | a filled polygon |
 | `line` | points [[u, v], ...], width, colour | a polyline (width in panel heights) |
 | `text` | text, panel, at [u, v], height, colour, font?, weight?, letter_spacing?, rotation? | text centred at `at`; height = capital height as a fraction of the panel's height; fonts: Montserrat, Oswald (weights 100-900) |
-| `image` | asset, panel, at [u, v], width or height, rotation?, tint?, opacity? | a logo picture (PNG with transparency, added with `add_asset`), centred at `at` |
+| `image` | asset, panel, at [u, v] + width or height, or fit (`cover` / `contain`, scale?); rotation?, tint?, opacity? | a picture added with `add_asset`: a logo (PNG with transparency) centred at `at`, or artwork filling the panel (`"fit": "cover"`) |
 
 Every layer except text and image takes `panels` (a list; `"sleeve*"` means both sleeves; default all panels of that
 sheet), `opacity`, and `clip` (a polygon [[u, v], ...]: draw only inside it). Bands, shapes, chevrons and lines can
 take `edge`: {"width": 0.003, "dark": 0.45} for a printed outline. Shapes and lines use the panel's height as the unit
 across too, so a shape keeps its proportions.
+
+**Artwork** (an illustration, a photo print, a painted scene): don't redraw it from shapes. Cut the artwork out
+of the user's picture (or use their file), add it with `add_asset`, and place it with an `image` layer (`"fit":
+"cover"` fills a panel); draw the plain colours, stripes and text around it with layers.
 
 **B. A painted sheet (image models).** Paint the whole sheet as one picture at exactly the sheet's size, laid out as
 above: start from `get_template(style="clean")` (white panels, their names, which way is up, the zip line, the

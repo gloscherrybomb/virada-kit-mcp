@@ -113,7 +113,11 @@ def _stamp(layer, rgba, sheet, panel, img):
     """Composite an RGBA picture onto a panel: centred at layer 'at' [u, v], 'width' (fraction of the panel's width)
     or 'height' (of its height), turned 'rotation' degrees anticlockwise."""
     L = LAYOUT[sheet]; x0, y0, w, h = L['panels'][panel]['rect']
-    if 'width' in layer: s = layer['width'] * w / rgba.width
+    fit = layer.get('fit')                                         # 'cover' fills the panel, 'contain' fits inside it
+    if fit in ('cover', 'contain'):
+        s = (max if fit == 'cover' else min)(w / rgba.width, h / rgba.height) * layer.get('scale', 1.0)
+        layer = {**layer, 'at': layer.get('at', [0.5, 0.5])}
+    elif 'width' in layer: s = layer['width'] * w / rgba.width
     else: s = layer.get('height', 0.1) * h / rgba.height
     rgba = rgba.resize((max(1, int(rgba.width * s)), max(1, int(rgba.height * s))), Image.LANCZOS)
     if layer.get('rotation'): rgba = rgba.rotate(layer['rotation'], resample=Image.BICUBIC, expand=True)
