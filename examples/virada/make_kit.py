@@ -27,11 +27,11 @@ jersey = [
     {'type': 'line', 'panels': ['front'], 'points': [[0.83, 0.39], [0.71, 0.25]], 'width': 0.003, 'colour': CORAL},
     {'type': 'shape', 'panels': ['front'], 'points': [[0.78, 0.62], [0.86, 0.66], [0.74, 0.40], [0.70, 0.42]], 'colour': MAROON_D, 'opacity': 0.8},
     # the chest: the big V, VIRADA, CYCLING VIRTUAL
-    *V(0.5, 0.80, 0.21, w=0.25, panel='front'),
+    *V(0.5, 0.80, 0.21, w=0.34, panel='front'),
     {'type': 'text', 'panel': 'front', 'text': 'VIRADA', 'at': [0.5, 0.545], 'height': 0.075, 'colour': WHITE, 'font': 'Montserrat', 'weight': 600, 'letter_spacing': 0.16},
     {'type': 'text', 'panel': 'front', 'text': 'CYCLING VIRTUAL', 'at': [0.5, 0.49], 'height': 0.028, 'colour': PINK, 'font': 'Montserrat', 'weight': 500, 'letter_spacing': 0.36},
     # the small V on the right chest, under the shoulder
-    *V(0.25, 0.90, 0.075, w=0.085, panel='front', white=CORAL, coral=CORAL),
+    *V(0.25, 0.90, 0.075, w=0.11, panel='front', white=CORAL, coral=CORAL),
     # sleeves: the right one white, the left one coral with a maroon V towards the hem, on its outside
     {'type': 'fill', 'panels': ['sleeve_r'], 'colour': WHITE},
     {'type': 'fill', 'panels': ['sleeve_l'], 'colour': CORAL},
