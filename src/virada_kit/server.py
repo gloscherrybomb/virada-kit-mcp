@@ -76,8 +76,17 @@ def _hv(fn):
         if not LIMITER.heavy.acquire(timeout=limits.HEAVY_WAIT):
             raise RuntimeError('busy: many kits are being worked on right now; try again in a minute')
         try: return fn(*a, **k)
-        finally: LIMITER.heavy.release()
+        finally:
+            LIMITER.heavy.release(); _give_back()
     return run
+
+def _give_back():
+    """Hand freed memory back to the system after a big job (glibc keeps it otherwise; Linux only)."""
+    try:
+        import ctypes, gc
+        gc.collect(); ctypes.CDLL('libc.so.6').malloc_trim(0)
+    except Exception:
+        pass
 
 INSTRUCTIONS = '''Makes cycling kits (a jersey and bib shorts) for the Virada game from the user's pictures of a kit. When the
 user asks for a kit, or gives you kit pictures and mentions Virada, follow this without being told:

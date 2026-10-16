@@ -12,13 +12,19 @@ from .shade import shadow_of
 VIEWS_DIR = os.path.join(DATA, 'views')
 BODIES = {'male': 'regular_male', 'female': 'regular_female'}
 VIEWS = ('front', 'front34_left', 'left', 'back', 'right', 'front34_right')
-_cache = {}
+import collections, threading
+_cache = collections.OrderedDict(); _lock = threading.Lock()
+CACHE_VIEWS = 4              # each view unpacked is ~20 MB: keep the few last used (a preview uses three), not all 12
 
 def _view(body, view):
     key = (body, view)
-    if key not in _cache:
-        _cache[key] = dict(np.load(os.path.join(VIEWS_DIR, BODIES.get(body, body), view + '.npz')))
-    return _cache[key]
+    with _lock:
+        if key in _cache: _cache.move_to_end(key); return _cache[key]
+    P = dict(np.load(os.path.join(VIEWS_DIR, BODIES.get(body, body), view + '.npz')))
+    with _lock:
+        _cache[key] = P
+        while len(_cache) > CACHE_VIEWS: _cache.popitem(last=False)
+    return P
 
 def available():
     return {b: sorted(f[:-4] for f in os.listdir(os.path.join(VIEWS_DIR, d)) if f.endswith('.npz'))
