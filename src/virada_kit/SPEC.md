@@ -32,7 +32,7 @@ Text drawn upright on any panel reads correctly on the rider (nothing is mirrore
 - the zip runs up FRONT at u = 0.5; the three rear pockets are on BACK, v about 0.08-0.36, u about 0.22-0.78;
 - the chest is around v 0.40-0.60 on FRONT; the shoulder tops are the top ~8% of FRONT and BACK (keep fine detail
   out of there: it wraps over the shoulder);
-- the cuff band is the bottom ~18% of each sleeve (v 0.82-1); the gripper is the bottom ~10% of each leg (v 0-0.10);
+- the cuff band is the bottom ~15% of each sleeve (v 0.85-1); the gripper is the bottom ~10% of each leg (v 0-0.10);
 - the bib's top half (v > 0.55) is mostly under the jersey.
 The guide pictures (`get_template`) show each body's exact edges, seams, zip and pockets on the sheets.
 
@@ -116,7 +116,7 @@ appear in the game.
     {"type": "chevron", "panels": ["front", "back"], "v": 0.52, "depth": -0.12, "width": 0.10, "colour": [0.84, 0.13, 0.15]},
     {"type": "edges", "panels": ["front", "back"], "width": 0.10, "colour": [0.11, 0.11, 0.13]},
     {"type": "fill", "panels": ["sleeve*"], "colour": [0.11, 0.11, 0.13]},
-    {"type": "band", "panels": ["sleeve*"], "v": [0.82, 1.0], "colour": [0.84, 0.13, 0.15]},
+    {"type": "band", "panels": ["sleeve*"], "v": [0.85, 1.0], "colour": [0.84, 0.13, 0.15]},
     {"type": "text", "panel": "front", "text": "RED", "at": [0.5, 0.62], "height": 0.05, "colour": [0.11, 0.11, 0.13], "font": "Oswald", "weight": 600}],
    "zip": [0.11, 0.11, 0.13]},
  "bib": {"layers": [{"type": "fill", "colour": [0.11, 0.11, 0.13]}, {"type": "band", "v": [0, 0.104], "colour": [0.2, 0.2, 0.23]}]},
