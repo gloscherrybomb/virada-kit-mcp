@@ -7,7 +7,7 @@ validate_kit, export_kit (hands the file back to the agent), import_kit. Resourc
 import base64, io, json, os, sys, tempfile
 import numpy as np
 from PIL import Image as PILImage
-from mcp.server.mcpserver import MCPServer, Image
+from mcp.server.mcpserver import MCPServer, Image, Context
 from mcp.types import EmbeddedResource, BlobResourceContents
 from . import sheets, preview, kitfile
 
@@ -17,8 +17,12 @@ LOCAL_ = '--http' not in sys.argv
 # exported kits land here: a folder the user can find (local), or a temporary one (a remote server)
 WORK = os.environ.get('VIRADA_KIT_WORKDIR') or (os.path.expanduser('~/virada-kits') if LOCAL_ else tempfile.mkdtemp(prefix='virada-kit-'))
 os.makedirs(WORK, exist_ok=True)
-ASSETS: dict = {}            # name -> PIL image (this server's session)
-LOCAL = '--http' not in sys.argv   # over HTTP the server never reads or writes paths it is given (only base64 in)
+LOCAL = LOCAL_                # over HTTP the server never reads or writes paths it is given (only base64 in)
+SESSIONS: dict = {}           # one asset store per connected agent: {session: {name: PIL image}}
+def _assets(ctx):
+    key = id(ctx.session) if ctx is not None and LOCAL is False else 'local'
+    if len(SESSIONS) > 2000: SESSIONS.clear()                     # a remote server forgets old sessions
+    return SESSIONS.setdefault(key, {})
 
 mcp = MCPServer('virada-kit', title='Virada kit maker', version='0.1.0',
                 instructions='Makes cycling kits (jersey + bib shorts) for the Virada game from the user\'s reference '
@@ -63,9 +67,10 @@ def get_template(sheet: str = 'jersey', style: str = 'guide', save_to: str | Non
     return [note, _png(im, 1400)]
 
 @mcp.tool()
-def add_asset(name: str, path: str | None = None, base64_png: str | None = None) -> str:
+def add_asset(name: str, path: str | None = None, base64_png: str | None = None, ctx: Context = None) -> str:
     """Add a picture the kit uses: a logo for an 'image' layer (PNG with transparency is best) or a whole painted sheet
     for {"sheet": name}. Give a local file path or base64 PNG/JPEG data. Names: letters, digits, _ and -."""
+    ASSETS = _assets(ctx)
     if not name or not all(c.isalnum() or c in '_-' for c in name): return 'name: letters, digits, _ and - only'
     im = _open_image(path, base64_png)
     if max(im.size) > kitfile.MAX_ASSET_PX and list(im.size) not in (sheets.LAYOUT['jersey']['size'], sheets.LAYOUT['bib']['size']):
@@ -74,29 +79,33 @@ def add_asset(name: str, path: str | None = None, base64_png: str | None = None)
     return f'added "{name}": {im.size[0]} x {im.size[1]} px' + (' (has transparency)' if im.mode in ('RGBA', 'LA', 'P') else ' (no transparency: it will be a rectangle)')
 
 @mcp.tool()
-def list_assets() -> str:
+def list_assets(ctx: Context = None) -> str:
     """The pictures added so far."""
+    ASSETS = _assets(ctx)
     return json.dumps({n: list(im.size) for n, im in ASSETS.items()}) if ASSETS else 'no assets yet'
 
 @mcp.tool()
-def validate_kit(kit: dict) -> str:
+def validate_kit(kit: dict, ctx: Context = None) -> str:
     """Check a kit object against the format. Returns 'valid' or the problems to fix."""
+    ASSETS = _assets(ctx)
     p = kitfile.validate(_kit(kit), ASSETS)
     return 'valid' if not p else 'problems:\n- ' + '\n- '.join(p)
 
 @mcp.tool()
-def render_sheets(kit: dict) -> list:
+def render_sheets(kit: dict, ctx: Context = None) -> list:
     """The kit's two finished sheets as pictures (jersey, then bib), to check the flat layout."""
+    ASSETS = _assets(ctx)
     kit = _kit(kit); p = kitfile.validate(kit, ASSETS)
     if p: return ['problems:\n- ' + '\n- '.join(p)]
     js, bs = kitfile.render_sheets(kit, ASSETS)
     return ['jersey sheet (2048 x 2048, shown smaller), then bib sheet (2048 x 1024)', _png(js, 1024), _png(bs, 1024)]
 
 @mcp.tool()
-def preview_kit(kit: dict, body: str = 'male', views: list[str] | None = None) -> list:
+def preview_kit(kit: dict, body: str = 'male', views: list[str] | None = None, ctx: Context = None) -> list:
     """The kit on the game's rider, in the game's look. body: 'male' or 'female'. views (any of front, front34_left,
     left, back, right, front34_right; default front, front34_left, back). front34_left = the front turned to show the
     rider's left side, like most product photos."""
+    ASSETS = _assets(ctx)
     kit = _kit(kit); p = kitfile.validate(kit, ASSETS)
     if p: return ['problems:\n- ' + '\n- '.join(p)]
     views = views or ['front', 'front34_left', 'back']
@@ -107,19 +116,23 @@ def preview_kit(kit: dict, body: str = 'male', views: list[str] | None = None) -
 
 @mcp.tool()
 def compare_to_reference(kit: dict, reference_path: str | None = None, reference_base64: str | None = None,
-                         body: str = 'male', view: str = 'front34_left', jersey_only: bool = True) -> list:
+                         body: str = 'male', view: str = 'front34_left', jersey_only: bool = True, ctx: Context = None) -> list:
     """The user's reference picture beside the kit on the game's rider from a similar angle, to spot what differs
     (colours, where panels and logos sit, sizes). Pick the view nearest the reference's angle. The rider is cropped to
-    the jersey (jersey_only, default) or to the jersey and bibs, as product pictures are framed."""
+    the jersey (jersey_only, default) or to the jersey and bibs, as product pictures are framed. If you can't send the
+    picture's bytes (a chat app), leave the reference out: you get the rider's views alone to set beside the picture
+    you can see."""
+    ASSETS = _assets(ctx)
     kit = _kit(kit); p = kitfile.validate(kit, ASSETS)
     if p: return ['problems:\n- ' + '\n- '.join(p)]
-    ref = _open_image(reference_path, reference_base64).convert('RGB')
+    ref = _open_image(reference_path, reference_base64).convert('RGB') if (reference_path or reference_base64) else None
     vs = [view] + (['front'] if view != 'front' else [])          # and straight on: centring and size read true there
     ims = kitfile.previews(kit, ASSETS, bodies=(body,), views=tuple(vs))
     crops = [preview.crop_to_kit(ims[f'{body}_{v}'], body, v, jersey_only=jersey_only) for v in vs]
-    return [f'left: the reference; then the kit on the {body} rider: {", ".join(vs)}. Judge centring and size on the '
-            'straight front view: a three-quarter picture squeezes the side turned away.',
-            _png(preview.sheet_of_views([ref] + crops, ['reference'] + [f'{body} {v}' for v in vs], cols=len(vs) + 1, scale=0.6))]
+    pics, labs = ([ref] if ref else []) + crops, (['reference'] if ref else []) + [f'{body} {v}' for v in vs]
+    return [('left: the reference; then ' if ref else '') + f'the kit on the {body} rider: {", ".join(vs)}. Judge centring '
+            'and size on the straight front view: a three-quarter picture squeezes the side turned away.',
+            _png(preview.sheet_of_views(pics, labs, cols=len(pics), scale=0.6))]
 
 def _kit_blob(path):
     name = os.path.basename(path)
@@ -127,19 +140,27 @@ def _kit_blob(path):
                                                           blob=base64.b64encode(open(path, 'rb').read()).decode()))
 
 @mcp.tool()
-def export_kit(kit: dict, path: str | None = None) -> list:
+def export_kit(kit: dict, path: str | None = None, ctx: Context = None) -> list:
     """Write the kit file (.kit.zip: kit.json, the two finished sheets, its pictures, previews) and hand it back: the
     result carries the file itself (an embedded resource, application/zip, also readable later as kit://<file name>)
     for you to save or pass on, plus where the server wrote it (path: local servers; default its work folder) and a
     preview to check."""
+    ASSETS = _assets(ctx)
     kit = _kit(kit)
     path = os.path.expanduser(path) if (path and LOCAL) else os.path.join(WORK, ''.join(c if c.isalnum() else '_' for c in kit.get('name', 'kit')).strip('_').lower() or 'kit')
     try: out = kitfile.export(kit, ASSETS, path)
     except ValueError as e: return [f'not exported, problems: {e}']
     EXPORTED[os.path.basename(out)] = out
+    link = ''
+    if not LOCAL:                                  # a remote server: a private link to download the file for an hour
+        import secrets, shutil
+        tok = secrets.token_urlsafe(12); os.makedirs(os.path.join(WORK, 'dl', tok), exist_ok=True)
+        shutil.copy(out, os.path.join(WORK, 'dl', tok, os.path.basename(out)))
+        link = f' Download it here (one hour): {PUBLIC_URL}/kits/{tok}/{os.path.basename(out)}'
+        _sweep_downloads()
     ims = kitfile.previews(kit, ASSETS, bodies=('male', 'female'), views=('front34_left',))
     return [f'exported {os.path.basename(out)} ({os.path.getsize(out) // 1024} KB)' + (f', written to {out}' if LOCAL else '') +
-            '. The file itself is attached (kit://' + os.path.basename(out) + '). Send it in to have it reviewed for the game.',
+            '. The file itself is attached (kit://' + os.path.basename(out) + ').' + link + ' Send it in to have it reviewed for the game.',
             _kit_blob(out), _png(preview.sheet_of_views(list(ims.values()), ['male', 'female'], cols=2, scale=0.5))]
 
 EXPORTED: dict = {}         # file name -> path, for kit://
@@ -151,9 +172,10 @@ def kit_file(name: str) -> bytes:
     return open(p, 'rb').read()
 
 @mcp.tool()
-def import_kit(path: str | None = None, base64_zip: str | None = None) -> list:
+def import_kit(path: str | None = None, base64_zip: str | None = None, ctx: Context = None) -> list:
     """Open a .kit.zip (made here or elsewhere) to keep working on it: returns its kit object (to edit and pass to the
     other tools) and adds its pictures as assets; also shows it on the riders."""
+    ASSETS = _assets(ctx)
     if path:
         if not LOCAL: return ['this server is remote: send the file as base64, not a path']
         src = os.path.expanduser(path)
@@ -165,10 +187,42 @@ def import_kit(path: str | None = None, base64_zip: str | None = None) -> list:
     ims = kitfile.previews(kit, ASSETS, bodies=('male',), views=('front', 'front34_left', 'back'), js=js, bs=bs)
     return [json.dumps(kit), _png(preview.sheet_of_views(list(ims.values()), ['front', 'front34_left', 'back'], cols=3, scale=0.5))]
 
+PUBLIC_URL = os.environ.get('VIRADA_KIT_PUBLIC_URL', 'http://127.0.0.1:8000').rstrip('/')
+
+def _sweep_downloads(max_age=3600):
+    import time, shutil
+    d = os.path.join(WORK, 'dl')
+    for t in os.listdir(d) if os.path.isdir(d) else []:
+        p = os.path.join(d, t)
+        if time.time() - os.path.getmtime(p) > max_age: shutil.rmtree(p, ignore_errors=True)
+
+@mcp.custom_route('/kits/{token}/{name}', methods=['GET'], include_in_schema=False)
+async def download(request):
+    from starlette.responses import FileResponse, PlainTextResponse
+    tok, name = request.path_params['token'], request.path_params['name']
+    p = os.path.join(WORK, 'dl', tok, name)
+    if '/' in tok + name or '..' in tok + name or not name.endswith('.kit.zip') or not os.path.exists(p):
+        return PlainTextResponse('not found', status_code=404)
+    return FileResponse(p, media_type='application/zip', filename=name)
+
+@mcp.custom_route('/health', methods=['GET'], include_in_schema=False)
+async def health(request):
+    from starlette.responses import PlainTextResponse
+    return PlainTextResponse('ok')
+
 def main():
     if '--http' in sys.argv:
-        port = int(sys.argv[sys.argv.index('--port') + 1]) if '--port' in sys.argv else 8000
-        mcp.run('streamable-http', port=port)
+        # a remote server for chat apps (Gemini, Claude.ai, ChatGPT): streamable HTTP at /mcp; put it behind HTTPS and
+        # set VIRADA_KIT_PUBLIC_URL to its public address (for download links and the allowed Host header)
+        from mcp.server.transport_security import TransportSecuritySettings
+        from urllib.parse import urlparse
+        a = sys.argv; port = int(a[a.index('--port') + 1]) if '--port' in a else 8000
+        host = a[a.index('--host') + 1] if '--host' in a else '127.0.0.1'
+        pub = urlparse(PUBLIC_URL).netloc
+        sec = TransportSecuritySettings(enable_dns_rebinding_protection=True,
+                                        allowed_hosts=[pub, f'127.0.0.1:{port}', f'localhost:{port}'],
+                                        allowed_origins=['https://gemini.google.com', 'https://claude.ai', 'https://chatgpt.com', PUBLIC_URL])
+        mcp.run('streamable-http', host=host, port=port, transport_security=sec, stateless_http=False)
     else:
         mcp.run()
 

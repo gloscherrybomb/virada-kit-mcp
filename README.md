@@ -53,7 +53,10 @@ pictures it uses, and previews. The game reads the two sheets.
 - Only use names, logos and designs you own or made.
 - The preview riders are made from Quaternius' Universal Base Characters (CC0). Fonts: Montserrat and Oswald (SIL Open
   Font License, see `src/virada_kit/data/fonts`).
-- Run over HTTP instead: `virada-kit --http --port 8000` (then pictures must be sent as base64, not paths).
+- **Chat apps** (Gemini web, Claude.ai, ChatGPT) connect to a server by URL, not by running it: run the remote
+  version (`Dockerfile`, or `VIRADA_KIT_PUBLIC_URL=https://your.host virada-kit --http --host 0.0.0.0 --port 8000`)
+  behind HTTPS and give the app `https://your.host/mcp`. There pictures go in as base64 (no paths), and exported kits
+  also come with a download link valid for an hour.
 
 ## Develop
 
