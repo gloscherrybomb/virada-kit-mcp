@@ -110,10 +110,12 @@ def compare_to_reference(kit: dict, reference_path: str | None = None, reference
     kit = _kit(kit); p = kitfile.validate(kit, ASSETS)
     if p: return ['problems:\n- ' + '\n- '.join(p)]
     ref = _open_image(reference_path, reference_base64).convert('RGB')
-    im = kitfile.previews(kit, ASSETS, bodies=(body,), views=(view,))[f'{body}_{view}']
-    im = preview.crop_to_kit(im, body, view, jersey_only=jersey_only)
-    return [f'left: the reference; right: the kit on the {body} rider, {view}',
-            _png(preview.sheet_of_views([ref, im], ['reference', f'{body} {view}'], cols=2, scale=0.75))]
+    vs = [view] + (['front'] if view != 'front' else [])          # and straight on: centring and size read true there
+    ims = kitfile.previews(kit, ASSETS, bodies=(body,), views=tuple(vs))
+    crops = [preview.crop_to_kit(ims[f'{body}_{v}'], body, v, jersey_only=jersey_only) for v in vs]
+    return [f'left: the reference; then the kit on the {body} rider: {", ".join(vs)}. Judge centring and size on the '
+            'straight front view: a three-quarter picture squeezes the side turned away.',
+            _png(preview.sheet_of_views([ref] + crops, ['reference'] + [f'{body} {v}' for v in vs], cols=len(vs) + 1, scale=0.6))]
 
 @mcp.tool()
 def export_kit(kit: dict, path: str | None = None) -> list:

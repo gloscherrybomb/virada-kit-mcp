@@ -81,6 +81,8 @@ drawn on top of the painted sheet (crisp text and logos over a painted backgroun
 2. Look at the references: list the colours (as sRGB 0..1), the panels, the logos and text, and where each sits on the
    body. Note what the references don't show (often the back, the far sleeve, the bibs).
 3. Add logos with `add_asset` (crop them cleanly from the reference or use files the user gives; transparent PNG).
+   Measure from the references against landmarks, not the picture's edges: a chest logo is usually centred on the
+   zip (FRONT u = 0.5); a three-quarter photo squeezes the side turned away, so things look off-centre in it.
 4. Write the kit; `preview_kit` to see it on the riders; `compare_to_reference` with the user's picture and the view
    nearest its angle (`front34_left` = the rider's front turned to show their left side); fix what differs and repeat.
    Check both bodies (male, female) and the back.
