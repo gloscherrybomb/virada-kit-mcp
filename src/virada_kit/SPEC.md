@@ -71,6 +71,12 @@ across a seam by matching the edges (FRONT's right edge = BACK's left edge). If 
 size, resize it to the sheet's size exactly. You can mix the two: give both `"sheet"` and `"layers"`, and the layers are
 drawn on top of the painted sheet (crisp text and logos over a painted background).
 
+## In a chat app (Gemini, Claude.ai, ChatGPT)
+The server is remote there: it can't read files, and you usually can't send it the user's pictures. That's fine:
+look at the user's pictures yourself, build the kit from **layers** (shapes, bands, text and the rest draw logos and
+marks well), call `preview_kit` and `compare_to_reference` (without the reference: set the rider's views beside the
+picture you can see), and `export_kit`; give the user the download link it returns. Pass the kit as a JSON object.
+
 ## Workflow
 0. **Complete the references first.** A kit needs the FRONT, the BACK and both sleeves; a product picture usually shows
    one side. If the user gave no back (or side) view, make one before building: with an image model, draw the

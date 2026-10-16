@@ -18,20 +18,57 @@ LOCAL_ = '--http' not in sys.argv
 WORK = os.environ.get('VIRADA_KIT_WORKDIR') or (os.path.expanduser('~/virada-kits') if LOCAL_ else tempfile.mkdtemp(prefix='virada-kit-'))
 os.makedirs(WORK, exist_ok=True)
 LOCAL = LOCAL_                # over HTTP the server never reads or writes paths it is given (only base64 in)
-import collections
-SESSIONS = collections.OrderedDict()   # one asset store per connected agent: {session: {name: PIL image}}
-MAX_SESSIONS_KEPT = 24                  # a remote server keeps the pictures of the most recent agents only
-MAX_SESSION_PX = 12_000_000             # and at most this many pixels of pictures per agent (two sheets and logos)
+import collections, hashlib, logging, secrets, time
+from mcp.types import ToolAnnotations
+LOG = logging.getLogger('virada_kit')
+# Every tool only makes pictures and files for the caller; none changes anything else (so apps can skip asking).
+SAFE = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
+
+class AssetStore:
+    """The pictures kits use. Chat apps may open a new connection for every call (Gemini does), so pictures can't
+    live with a connection: a remote server keeps them for two hours under an id add_asset hands back (the name plus a
+    random part), stored as PNG (small), up to a total size. A local server keeps them under the names given."""
+    TTL, MAX_BYTES = 7200, 300_000_000
+    def __init__(self): self.d = collections.OrderedDict()           # id -> (png bytes, time)
+    def put(self, name, im):
+        key = name if LOCAL else f'{name}~{secrets.token_hex(3)}'
+        b = io.BytesIO(); im.save(b, 'PNG'); self.d[key] = (b.getvalue(), time.time()); self.d.move_to_end(key)
+        self._trim(); return key
+    def _trim(self):
+        now = time.time()
+        for k in [k for k, (_, t) in self.d.items() if now - t > self.TTL and not LOCAL]: del self.d[k]
+        while sum(len(b) for b, _ in self.d.values()) > self.MAX_BYTES and len(self.d) > 1: self.d.popitem(last=False)
+    def get(self, key):
+        v = self.d.get(key)
+        return PILImage.open(io.BytesIO(v[0])).convert('RGBA') if v else None
+    def for_kit(self, kit):
+        """{name: picture} for the pictures this kit names (missing ones are left for validate to report)."""
+        names = set()
+        for part in ('jersey', 'bib'):
+            d = kit.get(part) if isinstance(kit, dict) else None
+            if not isinstance(d, dict): continue
+            if isinstance(d.get('sheet'), str): names.add(d['sheet'])
+            names |= {L.get('asset') for L in d.get('layers', []) if isinstance(L, dict) and L.get('type') == 'image'}
+        return {n: im for n in names if n and (im := self.get(n)) is not None}
+    def sizes(self):
+        return {k: list(PILImage.open(io.BytesIO(b)).size) for k, (b, _) in self.d.items()}
+STORE = AssetStore()
 LIMITER = limits.Limiter()
-def _assets(ctx):
-    key = id(ctx.session) if ctx is not None and LOCAL is False else 'local'
-    if key in SESSIONS: SESSIONS.move_to_end(key)
-    while len(SESSIONS) >= MAX_SESSIONS_KEPT and key not in SESSIONS: SESSIONS.popitem(last=False)
-    return SESSIONS.setdefault(key, {})
+def _client(ctx):
+    c = limits.client_of(getattr(ctx, 'headers', None) if ctx is not None else None)
+    return hashlib.sha256(c.encode()).hexdigest()[:8]               # logs keep a stand-in, not the address
 def _gate(ctx, tool):
-    """None, or the reason this call must wait (remote servers only)."""
+    """None, or the reason this call must wait (remote servers only). Logs the call (the tool, a stand-in for the
+    caller), so how agents use the server can be read back with `docker logs`."""
     if LOCAL: return None
-    return LIMITER.take(limits.client_of(getattr(ctx, 'headers', None) if ctx is not None else None), tool)
+    LOG.info('call %s client=%s', tool, _client(ctx))
+    why = LIMITER.take(limits.client_of(getattr(ctx, 'headers', None) if ctx is not None else None), tool)
+    if why: LOG.info('limited %s client=%s', tool, _client(ctx))
+    return why
+def _problems(kit, assets, tool):
+    p = kitfile.validate(kit, assets)
+    if p and not LOCAL: LOG.info('invalid %s: %s', tool, ' | '.join(p)[:600])
+    return p
 def _hv(fn):
     """fn, run only when its turn comes: at most a few previews and exports at once on a remote server."""
     def run(*a, **k):
@@ -59,7 +96,8 @@ def _png(img, max_side=None):
 
 def _open_image(path=None, base64_data=None):
     if path:
-        if not LOCAL: raise ValueError('this server is remote: send the picture as base64, not a path')
+        if not LOCAL: raise ValueError('this server is remote and cannot read your files: send the picture as base64 data, '
+                                       'or, if you cannot, build the kit from layers and leave pictures out')
         return PILImage.open(os.path.expanduser(path)).copy()
     if base64_data:
         if base64_data.startswith('data:'): base64_data = base64_data.split(',', 1)[1]
@@ -70,14 +108,14 @@ def _kit(kit):
     if isinstance(kit, str): kit = json.loads(kit)
     return kit
 
-@mcp.tool()
+@mcp.tool(annotations=SAFE)
 def get_kit_spec(ctx: Context = None) -> str:
     """The kit format and how to make a kit: the sheets and their panels, the layer types, the workflow. Read first."""
     why = _gate(ctx, 'get_kit_spec')
     if why: return why
     return SPEC
 
-@mcp.tool()
+@mcp.tool(annotations=SAFE)
 def get_template(sheet: str = 'jersey', style: str = 'guide', save_to: str | None = None, ctx: Context = None) -> list:
     """A sheet's template ('jersey' 2048x2048 or 'bib' 2048x1024). style 'guide': the panels and where the game's male
     (blue) and female (pink) riders' kit edges, seams, zip and pockets fall, for placing layers. style 'clean': white
@@ -92,61 +130,59 @@ def get_template(sheet: str = 'jersey', style: str = 'guide', save_to: str | Non
         im.save(os.path.expanduser(save_to)); note += f' Saved full size to {save_to}.'
     return [note, _png(im, 1400)]
 
-@mcp.tool()
+@mcp.tool(annotations=SAFE)
 def add_asset(name: str, path: str | None = None, base64_png: str | None = None, ctx: Context = None) -> str:
     """Add a picture the kit uses: a logo for an 'image' layer (PNG with transparency is best) or a whole painted sheet
-    for {"sheet": name}. Give a local file path or base64 PNG/JPEG data. Names: letters, digits, _ and -."""
+    for {"sheet": ...}. Give a local file path (local servers) or base64 PNG/JPEG data. Use the id it returns in the kit.
+    Names: letters, digits, _ and -. In a chat app that can't send a picture's bytes, skip this: build with layers."""
     why = _gate(ctx, 'add_asset')
     if why: return why
-    ASSETS = _assets(ctx)
     if not name or not all(c.isalnum() or c in '_-' for c in name): return 'name: letters, digits, _ and - only'
     im = _open_image(path, base64_png)
     if max(im.size) > kitfile.MAX_ASSET_PX and list(im.size) not in (sheets.LAYOUT['jersey']['size'], sheets.LAYOUT['bib']['size']):
         im.thumbnail((kitfile.MAX_ASSET_PX, kitfile.MAX_ASSET_PX))
-    if not LOCAL:
-        used = sum(a.size[0] * a.size[1] for n_, a in ASSETS.items() if n_ != name)
-        if len(ASSETS) >= kitfile.MAX_ASSETS and name not in ASSETS: return f'at most {kitfile.MAX_ASSETS} pictures per kit'
-        if used + im.size[0] * im.size[1] > MAX_SESSION_PX: return 'too many picture pixels for one kit: use smaller logos'
-    ASSETS[name] = im.convert('RGBA')
-    return f'added "{name}": {im.size[0]} x {im.size[1]} px' + (' (has transparency)' if im.mode in ('RGBA', 'LA', 'P') else ' (no transparency: it will be a rectangle)')
+    key = STORE.put(name, im.convert('RGBA'))
+    return (f'added: use "{key}" for it in the kit ({im.size[0]} x {im.size[1]} px' +
+            (', has transparency)' if im.mode in ('RGBA', 'LA', 'P') else ', no transparency: it will be a rectangle)') +
+            ('' if LOCAL else '. Kept for two hours.'))
 
-@mcp.tool()
+@mcp.tool(annotations=SAFE)
 def list_assets(ctx: Context = None) -> str:
     """The pictures added so far."""
     why = _gate(ctx, 'list_assets')
     if why: return why
-    ASSETS = _assets(ctx)
-    return json.dumps({n: list(im.size) for n, im in ASSETS.items()}) if ASSETS else 'no assets yet'
+    if not LOCAL: return 'a remote server keeps pictures for two hours under the ids add_asset returned; it does not list them'
+    z = STORE.sizes(); return json.dumps(z) if z else 'no assets yet'
 
-@mcp.tool()
-def validate_kit(kit: dict, ctx: Context = None) -> str:
+@mcp.tool(annotations=SAFE)
+def validate_kit(kit: dict | str, ctx: Context = None) -> str:
     """Check a kit object against the format. Returns 'valid' or the problems to fix."""
     why = _gate(ctx, 'validate_kit')
     if why: return why
-    ASSETS = _assets(ctx)
-    p = kitfile.validate(_kit(kit), ASSETS)
+    kit = _kit(kit); ASSETS = STORE.for_kit(kit)
+    p = _problems(kit, ASSETS, 'validate_kit')
     return 'valid' if not p else 'problems:\n- ' + '\n- '.join(p)
 
-@mcp.tool()
-def render_sheets(kit: dict, ctx: Context = None) -> list:
+@mcp.tool(annotations=SAFE)
+def render_sheets(kit: dict | str, ctx: Context = None) -> list:
     """The kit's two finished sheets as pictures (jersey, then bib), to check the flat layout."""
     why = _gate(ctx, 'render_sheets')
     if why: return [why]
-    ASSETS = _assets(ctx)
-    kit = _kit(kit); p = kitfile.validate(kit, ASSETS)
+    kit = _kit(kit); ASSETS = STORE.for_kit(kit)
+    p = _problems(kit, ASSETS, 'render_sheets')
     if p: return ['problems:\n- ' + '\n- '.join(p)]
     js, bs = _hv(kitfile.render_sheets)(kit, ASSETS)
     return ['jersey sheet (2048 x 2048, shown smaller), then bib sheet (2048 x 1024)', _png(js, 1024), _png(bs, 1024)]
 
-@mcp.tool()
-def preview_kit(kit: dict, body: str = 'male', views: list[str] | None = None, ctx: Context = None) -> list:
+@mcp.tool(annotations=SAFE)
+def preview_kit(kit: dict | str, body: str = 'male', views: list[str] | None = None, ctx: Context = None) -> list:
     """The kit on the game's rider, in the game's look. body: 'male' or 'female'. views (any of front, front34_left,
     left, back, right, front34_right; default front, front34_left, back). front34_left = the front turned to show the
     rider's left side, like most product photos."""
     why = _gate(ctx, 'preview_kit')
     if why: return [why]
-    ASSETS = _assets(ctx)
-    kit = _kit(kit); p = kitfile.validate(kit, ASSETS)
+    kit = _kit(kit); ASSETS = STORE.for_kit(kit)
+    p = _problems(kit, ASSETS, 'preview_kit')
     if p: return ['problems:\n- ' + '\n- '.join(p)]
     views = views or ['front', 'front34_left', 'back']
     bad = [v for v in views if v not in preview.VIEWS]
@@ -154,8 +190,8 @@ def preview_kit(kit: dict, body: str = 'male', views: list[str] | None = None, c
     ims = _hv(kitfile.previews)(kit, ASSETS, bodies=(body,), views=tuple(views))
     return [f'{body}: ' + ', '.join(views), _png(preview.sheet_of_views(list(ims.values()), views, cols=min(3, len(views)), scale=0.6))]
 
-@mcp.tool()
-def compare_to_reference(kit: dict, reference_path: str | None = None, reference_base64: str | None = None,
+@mcp.tool(annotations=SAFE)
+def compare_to_reference(kit: dict | str, reference_path: str | None = None, reference_base64: str | None = None,
                          body: str = 'male', view: str = 'front34_left', jersey_only: bool = True, ctx: Context = None) -> list:
     """The user's reference picture beside the kit on the game's rider from a similar angle, to spot what differs
     (colours, where panels and logos sit, sizes). Pick the view nearest the reference's angle. The rider is cropped to
@@ -164,8 +200,8 @@ def compare_to_reference(kit: dict, reference_path: str | None = None, reference
     you can see."""
     why = _gate(ctx, 'compare_to_reference')
     if why: return [why]
-    ASSETS = _assets(ctx)
-    kit = _kit(kit); p = kitfile.validate(kit, ASSETS)
+    kit = _kit(kit); ASSETS = STORE.for_kit(kit)
+    p = _problems(kit, ASSETS, 'compare_to_reference')
     if p: return ['problems:\n- ' + '\n- '.join(p)]
     ref = _open_image(reference_path, reference_base64).convert('RGB') if (reference_path or reference_base64) else None
     vs = [view] + (['front'] if view != 'front' else [])          # and straight on: centring and size read true there
@@ -181,19 +217,21 @@ def _kit_blob(path):
     return EmbeddedResource(resource=BlobResourceContents(uri=f'kit://{name}', mimeType='application/zip',
                                                           blob=base64.b64encode(open(path, 'rb').read()).decode()))
 
-@mcp.tool()
-def export_kit(kit: dict, path: str | None = None, ctx: Context = None) -> list:
+@mcp.tool(annotations=SAFE)
+def export_kit(kit: dict | str, path: str | None = None, ctx: Context = None) -> list:
     """Write the kit file (.kit.zip: kit.json, the two finished sheets, its pictures, previews) and hand it back: the
     result carries the file itself (an embedded resource, application/zip, also readable later as kit://<file name>)
     for you to save or pass on, plus where the server wrote it (path: local servers; default its work folder) and a
     preview to check."""
     why = _gate(ctx, 'export_kit')
     if why: return [why]
-    ASSETS = _assets(ctx)
-    kit = _kit(kit)
+    kit = _kit(kit); ASSETS = STORE.for_kit(kit)
     path = os.path.expanduser(path) if (path and LOCAL) else os.path.join(WORK, ''.join(c if c.isalnum() else '_' for c in kit.get('name', 'kit')).strip('_').lower() or 'kit')
     try: out = _hv(kitfile.export)(kit, ASSETS, path)
-    except ValueError as e: return [f'not exported, problems: {e}']
+    except ValueError as e:
+        if not LOCAL: LOG.info('invalid export_kit: %s', str(e)[:600])
+        return [f'not exported, problems: {e}']
+    if not LOCAL: LOG.info('exported %s client=%s', os.path.basename(out), _client(ctx))
     EXPORTED[os.path.basename(out)] = out
     link = ''
     if not LOCAL:                                  # a remote server: a private link to download the file for an hour
@@ -215,21 +253,27 @@ def kit_file(name: str) -> bytes:
     if not os.path.exists(p) or not name.endswith('.kit.zip'): raise ValueError(f'no exported kit {name}')
     return open(p, 'rb').read()
 
-@mcp.tool()
+@mcp.tool(annotations=SAFE)
 def import_kit(path: str | None = None, base64_zip: str | None = None, ctx: Context = None) -> list:
     """Open a .kit.zip (made here or elsewhere) to keep working on it: returns its kit object (to edit and pass to the
     other tools) and adds its pictures as assets; also shows it on the riders."""
     why = _gate(ctx, 'import_kit')
     if why: return [why]
-    ASSETS = _assets(ctx)
     if path:
         if not LOCAL: return ['this server is remote: send the file as base64, not a path']
         src = os.path.expanduser(path)
     elif base64_zip:
         src = os.path.join(WORK, 'imported.kit.zip'); open(src, 'wb').write(base64.b64decode(base64_zip.split(',', 1)[-1]))
     else: return ['give a path or base64_zip']
-    kit, assets, js, bs = kitfile.load(src); ASSETS.update({n: im.convert('RGBA') for n, im in assets.items()})
+    kit, assets, js, bs = kitfile.load(src)
     for k in ('format', 'version', 'exported'): kit.pop(k, None)
+    ren = {n: STORE.put(n, im.convert('RGBA')) for n, im in assets.items()}      # its pictures, under their new ids
+    for part in ('jersey', 'bib'):
+        d = kit.get(part, {})
+        if d.get('sheet') in ren: d['sheet'] = ren[d['sheet']]
+        for L in d.get('layers', []):
+            if L.get('asset') in ren: L['asset'] = ren[L['asset']]
+    ASSETS = STORE.for_kit(kit)
     ims = _hv(kitfile.previews)(kit, ASSETS, bodies=('male',), views=('front', 'front34_left', 'back'), js=js, bs=bs)
     return [json.dumps(kit), _png(preview.sheet_of_views(list(ims.values()), ['front', 'front34_left', 'back'], cols=3, scale=0.5))]
 
